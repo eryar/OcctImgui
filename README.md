@@ -36,6 +36,10 @@ GLFW natively supports Windows, macOS and Linux and other Unix-like systems. On 
 GLFW is licensed under the zlib/libpng license.
 
 ## Build
-Use Premake5 to build OcctImgui.
+Use Premake5 to build OcctImgui or with CMake:
+
+```
+cmake -DCMAKE_CXX_STANDARD=17 ..
+```
 
 
