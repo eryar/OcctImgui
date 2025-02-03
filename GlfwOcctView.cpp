@@ -26,6 +26,7 @@
 #include "imgui/imgui_impl_opengl3.h"
 
 #include <AIS_Shape.hxx>
+#include <AIS_ViewCube.hxx>
 #include <Aspect_Handle.hxx>
 #include <Aspect_DisplayConnection.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -192,6 +193,15 @@ void GlfwOcctView::initViewer()
     myView->ChangeRenderingParams().ToShowStats = Standard_True;
 
     myContext = new AIS_InteractiveContext(aViewer);
+
+    Handle(AIS_ViewCube) aCube = new AIS_ViewCube();
+    aCube->SetSize(55);
+    aCube->SetFontHeight(12);
+    aCube->SetAxesLabels("", "", "");
+    aCube->SetTransformPersistence(new Graphic3d_TransformPers(Graphic3d_TMF_TriedronPers, Aspect_TOTP_LEFT_LOWER, Graphic3d_Vec2i(100, 100)));
+    aCube->SetViewAnimation(this->ViewAnimation());
+    aCube->SetFixedAnimationLoop(false);
+    myContext->Display(aCube, false);
 }
 
 void GlfwOcctView::initGui()
@@ -271,6 +281,17 @@ void GlfwOcctView::initDemoScene()
 }
 
 // ================================================================
+// Function : handleViewRedraw
+// Purpose  :
+// ================================================================
+void GlfwOcctView::handleViewRedraw(const Handle(AIS_InteractiveContext)& theCtx,
+                                    const Handle(V3d_View)& theView)
+{
+  AIS_ViewController::handleViewRedraw(theCtx, theView);
+  myToWaitEvents = !myToAskNextFrame;
+}
+
+// ================================================================
 // Function : mainloop
 // Purpose  :
 // ================================================================
@@ -280,8 +301,14 @@ void GlfwOcctView::mainloop()
     {
         // glfwPollEvents() for continuous rendering (immediate return if there are no new events)
         // and glfwWaitEvents() for rendering on demand (something actually happened in the viewer)
-        //glfwPollEvents();
-        glfwWaitEvents();
+        if (myToWaitEvents)
+        {
+          glfwWaitEvents();
+        }
+        else
+        {
+          glfwPollEvents();
+        }
         if (!myView.IsNull())
         {
             myView->InvalidateImmediate(); // redraw view even if it wasn't modified
