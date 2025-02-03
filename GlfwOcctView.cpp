@@ -187,7 +187,7 @@ void GlfwOcctView::initViewer()
     aViewer->SetDefaultTypeOfView(V3d_PERSPECTIVE);
     aViewer->ActivateGrid(Aspect_GT_Rectangular, Aspect_GDM_Lines);
     myView = aViewer->CreateView();
-    myView->SetImmediateUpdate(Standard_False);
+    //myView->SetImmediateUpdate(Standard_False);
     myView->SetWindow(myOcctWindow, myOcctWindow->NativeGlContext());
     myView->ChangeRenderingParams().ToShowStats = Standard_True;
 
@@ -284,6 +284,7 @@ void GlfwOcctView::mainloop()
         glfwWaitEvents();
         if (!myView.IsNull())
         {
+            myView->InvalidateImmediate(); // redraw view even if it wasn't modified
             FlushViewEvents(myContext, myView, Standard_True);
 
             renderGui();
@@ -327,7 +328,8 @@ void GlfwOcctView::onResize(int theWidth, int theHeight)
         myView->Window()->DoResize();
         myView->MustBeResized();
         myView->Invalidate();
-        myView->Redraw();
+        FlushViewEvents(myContext, myView, true);
+        renderGui();
     }
 }
 
@@ -381,7 +383,7 @@ void GlfwOcctView::onMouseMove(int thePosX, int thePosY)
     ImGuiIO& aIO = ImGui::GetIO();
     if (aIO.WantCaptureMouse)
     {
-        myView->Redraw();
+        //myView->Redraw();
     }
     else
     {
