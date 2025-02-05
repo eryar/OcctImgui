@@ -65,6 +65,10 @@ private:
     //! Clean up before .
     void cleanup();
 
+    //! Handle view redraw.
+    void handleViewRedraw(const Handle(AIS_InteractiveContext)& theCtx,
+                          const Handle(V3d_View)& theView) override;
+
     //! @name GLWF callbacks
 private:
     //! Window resize event.
@@ -123,6 +127,7 @@ private:
     Handle(GlfwOcctWindow) myOcctWindow;
     Handle(V3d_View) myView;
     Handle(AIS_InteractiveContext) myContext;
+    bool myToWaitEvents = true;
 
 };
 
