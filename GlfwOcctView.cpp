@@ -20,26 +20,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <gl/glew.h>
 #include "GlfwOcctView.h"
 
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include "OcctOffscreenViewer.h"
 
 #include <AIS_Shape.hxx>
 #include <AIS_ViewCube.hxx>
 #include <Aspect_Handle.hxx>
 #include <Aspect_DisplayConnection.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
-#include <BRepPrimAPI_MakeCone.hxx>
 #include <Message.hxx>
 #include <Message_Messenger.hxx>
 #include <OpenGl_GraphicDriver.hxx>
 #include <TopAbs_ShapeEnum.hxx>
+#include <BRepPrimAPI_MakeSphere.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include <gp_Pnt.hxx>
+#include <BRep_Builder.hxx>
+#include <Aspect_NeutralWindow.hxx>
+#include <Image_AlienPixMap.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
 
 #include <iostream>
+#include <stdexcept>
+#include <string>
 
 #include <GLFW/glfw3.h>
-
 namespace
 {
     //! Convert GLFW mouse button into Aspect_VKeyMouse.
@@ -129,8 +138,37 @@ void GlfwOcctView::run()
     myView->MustBeResized();
     myOcctWindow->Map();
     initGui();
+    initOffScreenRenderer();
     mainloop();
     cleanup();
+}
+
+void GlfwOcctView::initOffScreenRenderer() {
+  // image dimensions
+  Graphic3d_Vec2i aWinSize(192, 108);
+  double aScaleRatio = 2.0;
+  OcctOffscreenViewer aViewer;
+  if (!aViewer.InitOffscreenViewer(aWinSize)) {
+    std::cout << "error" << std::endl;
+  }
+  aViewer.DumpGlInfo();
+
+  // setup rendering parameters
+  const Handle(V3d_View)& aView = aViewer.View();
+
+  // display something
+  aView->SetBackgroundColor(Quantity_NOC_BLACK);
+  aView->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_WHITE,
+                         aScaleRatio * 0.1);
+  aView->FitAll(0.01, false);
+
+  // make a screenshot
+  Image_AlienPixMap anImage;
+  if (!aView->ToPixMap(anImage, aWinSize.x(), aWinSize.y())) {
+    Message::SendFail() << "View dump FAILED";
+    throw std::runtime_error("View dump FAILED");
+
+  }
 }
 
 // ================================================================
@@ -211,6 +249,7 @@ void GlfwOcctView::initGui()
 
     ImGuiIO& aIO = ImGui::GetIO();
     aIO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    aIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     ImGui_ImplGlfw_InitForOpenGL(myOcctWindow->getGlfwWindow(), Standard_True);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -242,6 +281,13 @@ void GlfwOcctView::renderGui()
     ImGui::Render();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (aIO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        GLFWwindow* backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
+    }
 
     glfwSwapBuffers(myOcctWindow->getGlfwWindow());
 }
