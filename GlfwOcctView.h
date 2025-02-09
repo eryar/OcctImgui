@@ -44,6 +44,9 @@ public:
 
 private:
 
+    //! Create Offscreen rendered with a sample scene
+    void initOffScreenRenderer();
+    
     //! Create GLFW window.
     void initWindow(int theWidth, int theHeight, const char* theTitle);
 
